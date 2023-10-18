@@ -1,4 +1,5 @@
 using GameDevTV.Inventories;
+using RPG.Stats;
 using System;
 using System.Collections;
 using TMPro;
@@ -19,6 +20,8 @@ namespace RPG.Crafting.UI
         [SerializeField] TextMeshProUGUI recipeName;
         // A text field to hold the resulting item's description
         [SerializeField] TextMeshProUGUI recipeDescription;
+        // A text field to hold the recipe's required level
+        [SerializeField] TextMeshProUGUI recipeRequiredLevel;
         // The container that will hold all the ingredients
         [SerializeField] Transform ingredientsListContainer;
         // The prefab that represents each ingredient
@@ -41,6 +44,8 @@ namespace RPG.Crafting.UI
             recipeName.gameObject.SetActive(false);
             // Hide the description
             recipeDescription.gameObject.SetActive(false);
+            // Hide the required level
+            recipeRequiredLevel.gameObject.SetActive(false);
             // Stop crafting and reset
             StopCoroutinesAndCleanUp();
         }
@@ -100,6 +105,8 @@ namespace RPG.Crafting.UI
             recipeName.text = resultingItem.GetRecipeName();
             // Set the resulting item description
             recipeDescription.text = resultingItem.Item.GetDescription();
+            // Set the required level
+            recipeRequiredLevel.text = $"Requires Level {recipe.GetRequiredLevel()}";
 
             // Populate the ingredients list
             PopulateIngredientsList(recipe.GetIngredients());
@@ -110,11 +117,19 @@ namespace RPG.Crafting.UI
             recipeName.gameObject.SetActive(true);
             // Show the recipe description
             recipeDescription.gameObject.SetActive(true);
+            // Show the required level
+            recipeRequiredLevel.gameObject.SetActive(true);
+
+            // Store whether or not the player meets the level criteria
+            var playerMeetsLevelCriteria = PlayerMeetsLevelCriteria(recipe);
+
+            // Show the required level only if the player level is too low
+            recipeRequiredLevel.gameObject.SetActive(!playerMeetsLevelCriteria);
 
             // Show the craft button
             craftButton.gameObject.SetActive(true);
             // Make the craft button interactable _if_ the player can craft this recipe
-            craftButton.interactable = CraftingTable.CanCraftRecipe(recipe);
+            craftButton.interactable = CraftingTable.CanCraftRecipe(recipe) && playerMeetsLevelCriteria;
         }
 
         private void StopCoroutinesAndCleanUp()
@@ -146,6 +161,13 @@ namespace RPG.Crafting.UI
                 var ingredientUI = Instantiate(ingredientPrefab, ingredientsListContainer);
                 ingredientUI.Setup(ingredient);
             }
+        }
+
+        private bool PlayerMeetsLevelCriteria(Recipe recipe)
+        {
+            var baseStates = GameObject.FindWithTag("Player").GetComponent<BaseStats>();
+            var playerLevel = baseStates.GetLevel();
+            return playerLevel >= recipe.GetRequiredLevel();
         }
 
         // The event handler that is executed when a recipe is selected

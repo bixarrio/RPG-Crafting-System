@@ -13,6 +13,24 @@ namespace RPG.Crafting
         [SerializeField] CraftingItem resultingItem;
         // How long it will take (in seconds) to craft this item
         [SerializeField] float craftDuration = 1f;
+        // Required level to craft this item
+        [SerializeField] int requiredLevel = 0;
+
+        // Validate the recipe
+        private void OnValidate()
+        {
+            // Check if we have the same ingredient multiple times
+            for (int i = 0; i < ingredients.Length - 1; i++)
+            {
+                for(int j = i + 1; j < ingredients.Length; j++)
+                {
+                    if (object.ReferenceEquals(ingredients[i].Item, ingredients[j].Item))
+                    {
+                        Debug.LogError($"Recipe Ingredients contain the same item ({ingredients[i].Item}) multiple times", this);
+                    }
+                }
+            }
+        }
 
         // A getter to return the ingredients
         public CraftingItem[] GetIngredients()
@@ -28,6 +46,11 @@ namespace RPG.Crafting
         public float GetCraftDuration()
         {
             return craftDuration;
+        }
+        // A getter to return the required level
+        public int GetRequiredLevel()
+        {
+            return requiredLevel;
         }
     }
 
