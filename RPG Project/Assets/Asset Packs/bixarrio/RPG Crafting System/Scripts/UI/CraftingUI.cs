@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,14 +21,14 @@ namespace RPG.Crafting.UI
 
             // Remove all children from the recipe list container
             CleanupRecipesList();
-            // Hook to the event that will let us know when a crafting table has been interacted with
-            CraftingTable.CraftingActivated += OnCraftingActivated;
         }
 
-        private void OnDestroy()
+        public void ShowCraftingUI(CraftingSystem craftingSystem)
         {
-            // Unhook the event
-            CraftingTable.CraftingActivated -= OnCraftingActivated;
+            // Populate the recipes list
+            PopulateRecipesList(craftingSystem.GetRecipesList());
+            // Show the UI
+            gameObject.SetActive(true);
         }
 
         private void CleanupRecipesList()
@@ -57,26 +56,17 @@ namespace RPG.Crafting.UI
             }
         }
 
-        private void PopulateRecipesList(Recipe[] recipes)
+        private void PopulateRecipesList(Recipe[] recipesList)
         {
             // Remove all children from the recipe list container
             CleanupRecipesList();
             // Go through each recipe, create it's representation and add it to the list
-            foreach (var recipe in recipes)
+            foreach (var recipe in recipesList)
             {
                 var recipeUI = Instantiate(recipePrefab, recipesListContainer);
                 recipeUI.Setup(recipe);
                 recipesInList.Add(recipeUI);
             }
-        }
-
-        // The event handler that is executed when a crafting table is interacted with
-        private void OnCraftingActivated(Recipe[] recipes)
-        {
-            // Populate the recipes list
-            PopulateRecipesList(recipes);
-            // Show the UI
-            gameObject.SetActive(true);
         }
     }
 }

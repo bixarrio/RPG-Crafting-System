@@ -19,6 +19,8 @@ namespace RPG.Crafting.UI
 
         // A reference to the recipe
         private Recipe recipe;
+        // A reference to the crafting table
+        private ICraftingTable craftingTable;
 
         // Set up the recipe
         public void Setup(Recipe recipe)

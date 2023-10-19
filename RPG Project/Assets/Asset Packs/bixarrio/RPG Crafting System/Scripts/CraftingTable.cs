@@ -1,17 +1,22 @@
 using GameDevTV.Inventories;
+using GameDevTV.Saving;
 using RPG.Control;
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace RPG.Crafting
 {
-    public class CraftingTable : MonoBehaviour, IRaycastable
+    public class CraftingTable : MonoBehaviour, IRaycastable, ISaveable, ICraftingTable
     {
-        // Event that will fire when the crafting table is interacted with
-        public static event Action<Recipe[]> CraftingActivated;
+        public event Action CraftingStarted;
+        public event Action<float> CraftingProgress;
+        public event Action CraftingCompleted;
 
         // All the discovered recipes in the system
         private Recipe[] recipes;
+        // Time when crafting started
+        private float craftingStartTime;
 
         private void Awake()
         {
@@ -33,10 +38,11 @@ namespace RPG.Crafting
                 return false;
             }
 
-            // If the player presseed the left mouse button, fire the event
+            // If the player pressed the left mouse button, show the crafting UI
             if (Input.GetMouseButtonDown(0))
             {
-                CraftingActivated?.Invoke(recipes);
+                var craftingSystem = CraftingSystem.GetCraftingSystem();
+                craftingSystem.ShowCrafting(this);
             }
 
             return true;
@@ -79,5 +85,35 @@ namespace RPG.Crafting
             // If we got to here, the player has all the ingredients required. return true
             return true;
         }
+
+        private IEnumerator CraftingRoutine(Recipe recipe)
+        {
+            yield return null;
+        }
+
+        Recipe[] ICraftingTable.GetRecipesList() => recipes;
+        bool ICraftingTable.CanCraftRecipe(Recipe recipe) => CanCraftRecipe(recipe);
+        void ICraftingTable.CraftRecipe(Recipe recipe)
+        {
+            craftingStartTime = CraftingSystem.GetCraftingSystem().GetGlobalCraftingTime();
+            StartCoroutine(CraftingRoutine(recipe));
+        }
+
+        void ICraftingTable.CancelCrafting() => StopAllCoroutines();
+
+        object ISaveable.CaptureState() => throw new NotImplementedException();
+        void ISaveable.RestoreState(object state) => throw new NotImplementedException();
+    }
+
+    public interface ICraftingTable
+    {
+        event Action CraftingStarted;
+        event Action<float> CraftingProgress;
+        event Action CraftingCompleted;
+
+        Recipe[] GetRecipesList();
+        bool CanCraftRecipe(Recipe recipe);
+        void CraftRecipe(Recipe recipe);
+        void CancelCrafting();
     }
 }
