@@ -1,4 +1,8 @@
-## RPG Crafting System v0.1
+## RPG Crafting System v0.2
+
+**Changes**
+* Recipes can now have a required level and will only be craftable if the player is at or above that level
+
 This is a simple crafting system for the GameDev.tv RPG course. This crafting system was highly inspired by Valheim.
 
 ### Setup
