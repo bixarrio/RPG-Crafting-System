@@ -1,27 +1,46 @@
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
 using RPG.Control;
+using RPG.Crafting.UI;
 using System;
-using System.Collections;
 using UnityEngine;
 
 namespace RPG.Crafting
 {
-    public class CraftingTable : MonoBehaviour, IRaycastable, ISaveable, ICraftingTable
+    public class CraftingTable : MonoBehaviour, ICraftingTable, IRaycastable, ISaveable
     {
+        public event Action<ICraftingTable> OnInteract;
         public event Action CraftingStarted;
         public event Action<float> CraftingProgress;
         public event Action CraftingCompleted;
+        public event Action CraftingCancelled;
+
+        // The current crafting progress, if any
+        public float CraftingPercentage { get; private set; } = 0;
+        // The current crafting state
+        public CraftingState CurrentState { get; private set; }
+        // The current recipe (if any)
+        public Recipe CurrentRecipe { get; private set; }
+        public CraftingItem CraftedOutput { get; private set; }
 
         // All the discovered recipes in the system
         private Recipe[] recipes;
-        // Time when crafting started
+        // The global time that crafting has started
         private float craftingStartTime;
+        // The current recipe to be crafted
+
+        // A reference to the time keeper
+        private TimeKeeper timeKeeper;
+
+        // An action to execute depending on the state - just a little state machine
+        private Action currentAction;
 
         private void Awake()
         {
             // Finds all the recipes in the system. Assumes recipes are under /Resources/Recipes/
             recipes = Resources.LoadAll<Recipe>("Recipes");
+            // Keep a reference to the time keeper
+            timeKeeper = TimeKeeper.GetTimeKeeper();
         }
 
         public CursorType GetCursorType()
@@ -38,19 +57,134 @@ namespace RPG.Crafting
                 return false;
             }
 
-            // If the player pressed the left mouse button, show the crafting UI
+            // If the player presseed the left mouse button, fire the event
             if (Input.GetMouseButtonDown(0))
             {
-                var craftingSystem = CraftingSystem.GetCraftingSystem();
-                craftingSystem.ShowCrafting(this);
+                // Let the CraftingManager know that we are being interacted with
+                var craftingManager = CraftingManager.GetCraftingManager();
+                craftingManager.NotifyInteraction(this);
             }
 
             return true;
         }
 
-        // A static helper that checks if the player has all the
+        // Calculate the current crafting progress
+        private float GetCraftingProgress(Recipe recipe)
+        {
+            // We calculate progress by subtracting the start time from the global time
+            // We do it like this because we need to know how much time has passed since we started crafting
+            // and we can't use the deltaTime because it stops giving us data when we aren't loaded
+            var elapsedTime = timeKeeper.GetGlobalTime() - craftingStartTime;
+            // we return a normalised value for the crafting progress
+            return Mathf.Clamp01(elapsedTime / recipe.GetCraftDuration());
+        }
+
+        // The action that will execute when we are in the idle state
+        private void IdleAction()
+        {
+            // Make sure the state is what it should be for this action
+            if (CurrentState != CraftingState.Idle)
+            {
+                CurrentState = CraftingState.Idle;
+            }
+            // We do nothing else here
+        }
+
+        // The action that will execute when we are in the crafting state
+        private void CraftingAction()
+        {
+            // Make sure the state is what it should be for this action
+            if (CurrentState != CraftingState.Crafting)
+            {
+                CurrentState = CraftingState.Crafting;
+            }
+
+            // Determine the current progress
+            CraftingPercentage = GetCraftingProgress(CurrentRecipe);
+
+            // Report progress
+            CraftingProgress?.Invoke(CraftingPercentage);
+
+            // If we aren't done yet, we have nothing further to do
+            if (CraftingPercentage < 1f)
+            {
+                return;
+            }
+
+            // If we are here, crafting is complete
+            CraftedOutput = CurrentRecipe.GetResult();
+
+            // Crafting is complete
+            CraftingCompleted?.Invoke();
+
+            // Reset the progress
+            CraftingPercentage = 0f;
+            // Reset the crafting start time
+            craftingStartTime = 0f;
+            // Reset the recipe
+            CurrentRecipe = default;
+            // Set the state (the action will do it) to idle
+            currentAction = IdleAction;
+        }
+
+        // A getter to get the discovered recipes
+        Recipe[] ICraftingTable.GetRecipesList()
+        {
+            return recipes;
+        }
+
+        // Start the crafting process
+        void ICraftingTable.CraftRecipe(Recipe recipe)
+        {
+            // Set the state of the table
+            // Reset progress
+            CraftingPercentage = 0f;
+            // Set the start time to whatever the global time is
+            craftingStartTime = timeKeeper.GetGlobalTime();
+            // Set the current recipe to craft
+            CurrentRecipe = recipe;
+
+            // Set the state (the action will do it) to crafting
+            currentAction = CraftingAction;
+
+            // Remove the ingredients from the player's inventory
+            var playerInventory = Inventory.GetPlayerInventory();
+            foreach(var ingredient in recipe.GetIngredients())
+            {
+                playerInventory.RemoveItem(ingredient.Item, ingredient.Amount);
+            }
+
+            // Crafting has started
+            CraftingStarted?.Invoke();
+        }
+
+        // Cancel the crafting process
+        void ICraftingTable.CancelCrafting()
+        {
+            // Replace the items in the player's inventory
+            var playerInventory = Inventory.GetPlayerInventory();
+            foreach (var ingredient in CurrentRecipe.GetIngredients())
+            {
+                playerInventory.AddToFirstEmptySlot(ingredient.Item, ingredient.Amount);
+            }
+
+            // Reset progress
+            CraftingPercentage = 0f;
+            // Reset the start time
+            craftingStartTime = 0f;
+            // Reset the current recipe
+            CurrentRecipe = default;
+
+            // Set the state (the action will do it) to idle
+            currentAction = IdleAction;
+
+            // Crafting was cancelled
+            CraftingCancelled?.Invoke();
+        }
+
+        // Checks if the player has all the
         // required ingredients of a recipe in their inventory
-        public static bool CanCraftRecipe(Recipe recipe)
+        bool ICraftingTable.CanCraftRecipe(Recipe recipe)
         {
             // If we receive no recipe, return false
             if (recipe == null)
@@ -65,7 +199,7 @@ namespace RPG.Crafting
             {
                 return false;
             }
-            
+
             // Go through each ingredient and check the player's inventory for that ingredient
             foreach (var craftingItem in recipe.GetIngredients())
             {
@@ -86,34 +220,99 @@ namespace RPG.Crafting
             return true;
         }
 
-        private IEnumerator CraftingRoutine(Recipe recipe)
+        // Will be called by the CraftingSystem to update the table progress
+        // the table doesn't have to update its progress if it's not being looked at
+        void ICraftingTable.UpdateState()
         {
-            yield return null;
+            // execute the current action
+            currentAction?.Invoke();
         }
 
-        Recipe[] ICraftingTable.GetRecipesList() => recipes;
-        bool ICraftingTable.CanCraftRecipe(Recipe recipe) => CanCraftRecipe(recipe);
-        void ICraftingTable.CraftRecipe(Recipe recipe)
+        object ISaveable.CaptureState()
         {
-            craftingStartTime = CraftingSystem.GetCraftingSystem().GetGlobalCraftingTime();
-            StartCoroutine(CraftingRoutine(recipe));
+            // Save the state, start time and recipe
+            var saveData = new CraftingTableSaveData
+            {
+                CraftingState = CurrentState,
+                CraftingStartTime = craftingStartTime
+            };
+            if (CurrentRecipe != null)
+            {
+                saveData.RecipeID = CurrentRecipe.GetRecipeID();
+            }
+            if (CraftedOutput != null)
+            {
+                saveData.OutputItemID = CraftedOutput.Item.GetItemID();
+                saveData.OutputAmount = CraftedOutput.Amount;
+            }
+            return saveData;
+        }
+        void ISaveable.RestoreState(object state)
+        {
+            // Restore the state, start time and recipe (if any)
+            var saveData = (CraftingTableSaveData)state;
+
+            craftingStartTime = 0;
+            CurrentRecipe = default;
+            CurrentState = saveData.CraftingState;
+            currentAction = IdleAction;
+
+            if (!string.IsNullOrWhiteSpace(saveData.OutputItemID) && saveData.OutputAmount > 0)
+            {
+                CraftedOutput = new CraftingItem
+                {
+                    Amount = saveData.OutputAmount,
+                    Item = InventoryItem.GetFromID(saveData.OutputItemID)
+                };
+            }
+
+            // If we are idle, we are done here
+            if (CurrentState == CraftingState.Idle)
+            {
+                return;
+            }
+
+            // If we are here, we were crafting something the last time we got saved
+            // Update the table state to continue crafting
+            craftingStartTime = saveData.CraftingStartTime;
+            CurrentRecipe = Recipe.GetFromID(saveData.RecipeID);
+            currentAction = CraftingAction;
         }
 
-        void ICraftingTable.CancelCrafting() => StopAllCoroutines();
+        [Serializable]
+        struct CraftingTableSaveData
+        {
+            public CraftingState CraftingState;
+            public float CraftingStartTime;
+            public string RecipeID;
+            public string OutputItemID;
+            public int OutputAmount;
+        }
+    }
 
-        object ISaveable.CaptureState() => throw new NotImplementedException();
-        void ISaveable.RestoreState(object state) => throw new NotImplementedException();
+    public enum CraftingState
+    {
+        Idle,
+        Crafting
     }
 
     public interface ICraftingTable
     {
+        event Action<ICraftingTable> OnInteract;
         event Action CraftingStarted;
         event Action<float> CraftingProgress;
         event Action CraftingCompleted;
+        event Action CraftingCancelled;
+
+        Recipe CurrentRecipe { get; }
+        CraftingItem CraftedOutput { get; }
+        CraftingState CurrentState { get; }
+        float CraftingPercentage { get; }
 
         Recipe[] GetRecipesList();
         bool CanCraftRecipe(Recipe recipe);
         void CraftRecipe(Recipe recipe);
         void CancelCrafting();
+        void UpdateState();
     }
 }

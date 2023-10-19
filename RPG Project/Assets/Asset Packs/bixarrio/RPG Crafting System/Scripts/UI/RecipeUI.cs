@@ -9,26 +9,31 @@ namespace RPG.Crafting.UI
     // UI for one recipe
     public class RecipeUI : MonoBehaviour
     {
-        // An event that will fire if a recipe is selected
-        public static event Action<Recipe> RecipeSelected;
-
         // An image to hold the resulting item's icon
         [SerializeField] Image recipeIcon;
         // A text field to hold the resulting item's name
         [SerializeField] TextMeshProUGUI recipeName;
+        // The details panel
+        private RecipeDetailsUI recipeDetails;
 
         // A reference to the recipe
         private Recipe recipe;
-        // A reference to the crafting table
-        private ICraftingTable craftingTable;
 
         // Set up the recipe
-        public void Setup(Recipe recipe)
+        public void Setup(Recipe recipe, RecipeDetailsUI recipeDetails)
         {
             // Keep a reference to the recipe
             this.recipe = recipe;
+            // A reference to the details panel
+            this.recipeDetails = recipeDetails;
             // Refresh the UI
             RefreshUI();
+        }
+
+        // Get the recipe I represent
+        public Recipe GetRecipe()
+        {
+            return recipe;
         }
 
         // Hooked to the UI button
@@ -36,8 +41,15 @@ namespace RPG.Crafting.UI
         {
             // Visually select the game object
             EventSystem.current.SetSelectedGameObject(gameObject);
-            // Fire the event when a recipe is selected
-            RecipeSelected?.Invoke(recipe);
+            // Let the details panel know that a recipe was selected
+            recipeDetails.RecipeSelected(recipe);
+        }
+
+        // Toggle the button
+        public void SetEnabled(bool enabled)
+        {
+            var button = GetComponent<Button>();
+            button.interactable = enabled;
         }
 
         // Refresh the UI

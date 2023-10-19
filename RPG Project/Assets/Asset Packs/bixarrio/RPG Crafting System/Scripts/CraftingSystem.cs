@@ -1,44 +1,48 @@
-using GameDevTV.Saving;
 using RPG.Crafting.UI;
 using UnityEngine;
 
 namespace RPG.Crafting
 {
-    public class CraftingSystem : MonoBehaviour, ISaveable
+    // The crafting system presenter
+    public class CraftingSystem : MonoBehaviour
     {
         // Reference to the crafting UI
         [SerializeField] CraftingUI craftingUI;
 
-        // A global crafting value that will be used by crafting tables
-        private float globalCraftingTime = 0f;
-
         // A reference to the current crafting table
         private ICraftingTable currentCraftingTable;
 
-        private void FixedUpdate()
+        private void Awake()
         {
-            // Continuously update the global crafting time
-            globalCraftingTime += Time.fixedDeltaTime;
+            // Subscribe to the crafting manager's interact event
+            CraftingManager.Interact += OnCraftingInteraction;
         }
 
-        // Convenience for getting the crafting system.
-        public static CraftingSystem GetCraftingSystem()
+        private void OnDestroy()
         {
-            return FindObjectOfType<CraftingSystem>();
+            // Unsubscribe from the crafting manager's interact event
+            CraftingManager.Interact -= OnCraftingInteraction;
         }
 
-        // Show the crafting UI
-        public void ShowCrafting(ICraftingTable craftingTable)
+        private void Update()
         {
-            // Keep a reference to the current crafting table
-            currentCraftingTable = craftingTable;
-            // Show the crafting UI
-            craftingUI.ShowCraftingUI(this);
+            // If we have no crafting table, just do nothing
+            if (currentCraftingTable == null)
+            {
+                return;
+            }
+            // Update the crafting table's state
+            currentCraftingTable.UpdateState();
         }
 
         public Recipe[] GetRecipesList()
         {
             return currentCraftingTable.GetRecipesList();
+        }
+
+        public bool CanCraftRecipe(Recipe recipe)
+        {
+            return currentCraftingTable.CanCraftRecipe(recipe);
         }
 
         public void StartCrafting(Recipe recipe)
@@ -47,22 +51,62 @@ namespace RPG.Crafting
             currentCraftingTable.CraftRecipe(recipe);
         }
 
-        // A getter to return the global crafting time
-        public float GetGlobalCraftingTime()
+        public void CancelCrafting()
         {
-            return globalCraftingTime;
+            // Tell the crafting table to cancel the crafting process
+            currentCraftingTable.CancelCrafting();
         }
 
-        object ISaveable.CaptureState()
+        public void CloseCrafting()
         {
-            // Save the global crafting time
-            return globalCraftingTime;
+            // Unsubscribe to all the events
+            currentCraftingTable.CraftingStarted -= OnCraftingStarted;
+            currentCraftingTable.CraftingProgress -= OnCraftingProgress;
+            currentCraftingTable.CraftingCompleted -= OnCraftingCompleted;
+            currentCraftingTable.CraftingCancelled -= OnCraftingCancelled;
+            // remove the reference to the crafting table
+            currentCraftingTable = default;
         }
 
-        void ISaveable.RestoreState(object state)
+        private void OnCraftingInteraction(ICraftingTable craftingTable)
         {
-            // Restore the global crafting time
-            globalCraftingTime = (float)state;
+            // Keep a reference to the current crafting table
+            currentCraftingTable = craftingTable;
+            // Subscribe to all the events
+            currentCraftingTable.CraftingStarted += OnCraftingStarted;
+            currentCraftingTable.CraftingProgress += OnCraftingProgress;
+            currentCraftingTable.CraftingCompleted += OnCraftingCompleted;
+            currentCraftingTable.CraftingCancelled += OnCraftingCancelled;
+            // Show the crafting UI
+            craftingUI.ShowCraftingUI(this);
+            // If we have output, the UI need to show it
+            if (currentCraftingTable.CraftedOutput != null)
+            {
+                craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput);
+            }
+            // Let the UI know we are crafting
+            if (currentCraftingTable.CurrentState == CraftingState.Crafting)
+            {
+                craftingUI.CraftingStarted(currentCraftingTable.CurrentRecipe);
+            }
         }
+
+        private void OnCraftingStarted()
+        {
+            craftingUI.CraftingStarted(currentCraftingTable.CurrentRecipe);
+        }
+        private void OnCraftingProgress(float progress)
+        {
+            craftingUI.CraftingProgress(progress);
+        }
+        private void OnCraftingCompleted()
+        {
+            craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput);
+        }
+        private void OnCraftingCancelled()
+        {
+            craftingUI.CraftingCancelled();
+        }
+
     }
 }

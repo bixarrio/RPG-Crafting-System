@@ -33,7 +33,7 @@ namespace RPG.Crafting.UI
         // A reference to the recipe
         private Recipe recipe;
         // A reference to the crafting table
-        private ICraftingTable craftingTable;
+        private CraftingSystem craftingSystem;
 
         private void Awake()
         {
@@ -43,36 +43,64 @@ namespace RPG.Crafting.UI
             recipeName.gameObject.SetActive(false);
             // Hide the description
             recipeDescription.gameObject.SetActive(false);
-            // Stop crafting and reset
-            StopCoroutinesAndCleanUp();
+            // Reset
+            RefreshUI();
         }
 
-        private void OnEnable()
+        public void AttachCraftingSystem(CraftingSystem craftingSystem)
         {
-            // Hook to the recipe selection event
-            RecipeUI.RecipeSelected += OnRecipeSelected;
+            // Keep a reference to the crafting system
+            this.craftingSystem = craftingSystem;
         }
 
-        private void OnDisable()
+        // a recipe was selected
+        public void RecipeSelected(Recipe recipe)
         {
-            // Unhook from the recipe selection event
-            RecipeUI.RecipeSelected -= OnRecipeSelected;
+            // Keep a reference to the selected recipe
+            this.recipe = recipe;
+            // Reset
+            RefreshUI();
+            // Make this game object active
+            gameObject.SetActive(true);
         }
 
         // Hooked to the UI button
         public void CraftRecipe()
         {
-            // Stop crafting and reset
-            StopCoroutinesAndCleanUp();
             // Start the crafting
-            StartCoroutine(CraftItemRoutine(recipe));
+            craftingSystem.StartCrafting(recipe);
         }
 
         // Hooked to the progress image (clicking the image will cancel crafting)
         public void CancelCrafting()
         {
             // Stop crafting and reset
-            StopCoroutinesAndCleanUp();
+            craftingSystem.CancelCrafting();
+        }
+
+        public void SetCrafting(bool crafting)
+        {
+            // toggle the craft button
+            craftButton.interactable = !crafting;
+            // Hide the craft button
+            craftButton.gameObject.SetActive(!crafting);
+
+            // Reset the crafting progress image
+            craftProgressImage.fillAmount = 0f;
+            // Make the progress image visible
+            craftProgressContainer.SetActive(crafting);
+
+            // Refresh the UI if we are not crafting
+            if (!crafting)
+            {
+                RefreshUI();
+            }
+        }
+
+        public void UpdateProgress(float progress)
+        {
+            // Update the crafting progress
+            craftProgressImage.fillAmount = progress;
         }
 
         private void RefreshUI()
@@ -116,16 +144,7 @@ namespace RPG.Crafting.UI
             // Show the craft button
             craftButton.gameObject.SetActive(true);
             // Make the craft button interactable _if_ the player can craft this recipe
-            craftButton.interactable = CraftingTable.CanCraftRecipe(recipe);
-        }
-
-        private void StopCoroutinesAndCleanUp()
-        {
-            // Stop any crafting that may currently be happening
-            StopAllCoroutines();
-
-            // Refresh the UI
-            RefreshUI();
+            craftButton.interactable = craftingSystem.CanCraftRecipe(recipe);
         }
 
         private void CleanupIngredientsList()
@@ -148,19 +167,6 @@ namespace RPG.Crafting.UI
                 var ingredientUI = Instantiate(ingredientPrefab, ingredientsListContainer);
                 ingredientUI.Setup(ingredient);
             }
-        }
-
-        // The event handler that is executed when a recipe is selected
-        private void OnRecipeSelected(Recipe recipe)
-        {
-            // Keep a reference to the selected recipe
-            this.recipe = recipe;
-            // Stop crafting and reset
-            StopCoroutinesAndCleanUp();
-            // Refresh the UI
-            RefreshUI();
-            // Make this game object active
-            gameObject.SetActive(true);
         }
 
         // Routine to craft the recipe
@@ -194,7 +200,7 @@ namespace RPG.Crafting.UI
             // Show the craft button
             craftButton.gameObject.SetActive(true);
             // Make the craft button interactable _if_ the player can craft this recipe
-            craftButton.interactable = CraftingTable.CanCraftRecipe(recipe);
+            craftButton.interactable = craftingSystem.CanCraftRecipe(recipe);
 
             // Get the player inventory
             var playerInventory = Inventory.GetPlayerInventory();

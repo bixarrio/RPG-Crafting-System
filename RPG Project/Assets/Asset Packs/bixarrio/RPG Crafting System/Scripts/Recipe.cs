@@ -1,12 +1,16 @@
 using GameDevTV.Inventories;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 namespace RPG.Crafting
 {
     [CreateAssetMenu(menuName = "Crafting / Recipe", order = 0)]
-    public class Recipe : ScriptableObject
+    public class Recipe : ScriptableObject, ISerializationCallbackReceiver
     {
+        // A unique identifier for the recipe
+        [SerializeField] string recipeID;
         // A list of all the required ingredients
         [SerializeField] CraftingItem[] ingredients;
         // The resulting item
@@ -14,6 +18,37 @@ namespace RPG.Crafting
         // How long it will take (in seconds) to craft this item
         [SerializeField] float craftDuration = 1f;
 
+        static Dictionary<string, Recipe> recipeLookupCache = default;
+
+        public static Recipe GetFromID(string recipeID)
+        {
+            if (recipeLookupCache == null)
+            {
+                recipeLookupCache= new Dictionary<string, Recipe>();
+                var recipeList = Resources.LoadAll<Recipe>("Recipes");
+                foreach(var recipe in recipeList)
+                {
+                    if (recipeLookupCache.ContainsKey(recipe.recipeID))
+                    {
+                        Debug.LogError($"Looks like there's a duplicate RPG.Crafting.Recipe ID for objects: {recipeLookupCache[recipe.recipeID]} and {recipe}");
+                        continue;
+                    }
+                    recipeLookupCache[recipe.recipeID] = recipe;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(recipeID) || !recipeLookupCache.ContainsKey(recipeID))
+            {
+                return null;
+            }
+            return recipeLookupCache[recipeID];
+        }
+
+        // A getter to return the unique id
+        public string GetRecipeID()
+        {
+            return recipeID;
+        }
         // A getter to return the ingredients
         public CraftingItem[] GetIngredients()
         {
@@ -28,6 +63,18 @@ namespace RPG.Crafting
         public float GetCraftDuration()
         {
             return craftDuration;
+        }
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            if (string.IsNullOrWhiteSpace(recipeID))
+            {
+                recipeID = Guid.NewGuid().ToString();
+            }
+        }
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            // We do nothing, but we need this here
         }
     }
 
