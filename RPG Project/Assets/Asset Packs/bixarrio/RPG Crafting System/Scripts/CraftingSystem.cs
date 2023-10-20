@@ -14,14 +14,14 @@ namespace RPG.Crafting
 
         private void Awake()
         {
-            // Subscribe to the crafting manager's interact event
-            CraftingManager.Interact += OnCraftingInteraction;
+            // Subscribe to the crafting mediator's interact event
+            CraftingMediator.Interact += OnCraftingInteraction;
         }
 
         private void OnDestroy()
         {
-            // Unsubscribe from the crafting manager's interact event
-            CraftingManager.Interact -= OnCraftingInteraction;
+            // Unsubscribe from the crafting mediator's interact event
+            CraftingMediator.Interact -= OnCraftingInteraction;
         }
 
         private void Update()
@@ -38,6 +38,17 @@ namespace RPG.Crafting
         public Recipe[] GetRecipesList()
         {
             return currentCraftingTable.GetRecipesList();
+        }
+
+        public CraftedItemSlot GetCraftedOutput()
+        {
+            // If we have no crafting table, return null
+            if (currentCraftingTable == null)
+            {
+                return null;
+            }
+            // Return the output (or null if there's nothing)
+            return currentCraftingTable.CraftedOutput;
         }
 
         public bool CanCraftRecipe(Recipe recipe)
@@ -64,6 +75,8 @@ namespace RPG.Crafting
             currentCraftingTable.CraftingProgress -= OnCraftingProgress;
             currentCraftingTable.CraftingCompleted -= OnCraftingCompleted;
             currentCraftingTable.CraftingCancelled -= OnCraftingCancelled;
+            // Cleanup the UI
+            craftingUI.Cleanup();
             // remove the reference to the crafting table
             currentCraftingTable = default;
         }
@@ -82,7 +95,7 @@ namespace RPG.Crafting
             // If we have output, the UI need to show it
             if (currentCraftingTable.CraftedOutput != null)
             {
-                craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput);
+                craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput.GetCraftingItem());
             }
             // Let the UI know we are crafting
             if (currentCraftingTable.CurrentState == CraftingState.Crafting)
@@ -101,7 +114,7 @@ namespace RPG.Crafting
         }
         private void OnCraftingCompleted()
         {
-            craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput);
+            craftingUI.CraftingCompleted(currentCraftingTable.CraftedOutput.GetCraftingItem());
         }
         private void OnCraftingCancelled()
         {

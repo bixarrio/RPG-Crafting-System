@@ -1,7 +1,6 @@
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
 using RPG.Control;
-using RPG.Crafting.UI;
 using System;
 using UnityEngine;
 
@@ -21,7 +20,7 @@ namespace RPG.Crafting
         public CraftingState CurrentState { get; private set; }
         // The current recipe (if any)
         public Recipe CurrentRecipe { get; private set; }
-        public CraftingItem CraftedOutput { get; private set; }
+        public CraftedItemSlot CraftedOutput { get; private set; }
 
         // All the discovered recipes in the system
         private Recipe[] recipes;
@@ -61,7 +60,7 @@ namespace RPG.Crafting
             if (Input.GetMouseButtonDown(0))
             {
                 // Let the CraftingManager know that we are being interacted with
-                var craftingManager = CraftingManager.GetCraftingManager();
+                var craftingManager = CraftingMediator.GetCraftingManager();
                 craftingManager.NotifyInteraction(this);
             }
 
@@ -112,7 +111,22 @@ namespace RPG.Crafting
             }
 
             // If we are here, crafting is complete
-            CraftedOutput = CurrentRecipe.GetResult();
+            var craftedResult = CurrentRecipe.GetResult();
+            if (CraftedOutput == null)
+            {
+                // Add this to the CraftedOutput
+                CraftedOutput = new CraftedItemSlot(craftedResult);
+            }
+            else if (CraftedOutput.CanAddItem(craftedResult))
+            {
+                // The crafted output matches the little inventory, add it (should always be the case)
+                CraftedOutput.AddItem(craftedResult);
+            }
+            else
+            {
+                // We have a problem. This shouldn't happen
+                Debug.LogError("Crafted an item that does not match the item in the output inventory");
+            }
 
             // Crafting is complete
             CraftingCompleted?.Invoke();
@@ -216,7 +230,27 @@ namespace RPG.Crafting
                 }
             }
 
-            // If we got to here, the player has all the ingredients required. return true
+            // If we got to here, the player has all the ingredients required.
+            // Check if we have matching output
+            if (CraftedOutput == null)
+            {
+                // We have no output, return true
+                return true;
+            }
+
+            // Compare the output to the recipe's output
+            var recipeOutput = recipe.GetResult();
+            if (!object.ReferenceEquals(CraftedOutput.Item, recipeOutput.Item))
+            {
+                return false;
+            }
+
+            // Check if we can stack the items
+            if (!CraftedOutput.Item.IsStackable())
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -257,13 +291,10 @@ namespace RPG.Crafting
             CurrentState = saveData.CraftingState;
             currentAction = IdleAction;
 
+            // If we saved an output item, restore it
             if (!string.IsNullOrWhiteSpace(saveData.OutputItemID) && saveData.OutputAmount > 0)
             {
-                CraftedOutput = new CraftingItem
-                {
-                    Amount = saveData.OutputAmount,
-                    Item = InventoryItem.GetFromID(saveData.OutputItemID)
-                };
+                CraftedOutput = new CraftedItemSlot(InventoryItem.GetFromID(saveData.OutputItemID), saveData.OutputAmount);
             }
 
             // If we are idle, we are done here
@@ -305,7 +336,7 @@ namespace RPG.Crafting
         event Action CraftingCancelled;
 
         Recipe CurrentRecipe { get; }
-        CraftingItem CraftedOutput { get; }
+        CraftedItemSlot CraftedOutput { get; }
         CraftingState CurrentState { get; }
         float CraftingPercentage { get; }
 

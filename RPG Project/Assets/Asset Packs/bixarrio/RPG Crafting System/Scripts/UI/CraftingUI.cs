@@ -37,6 +37,9 @@ namespace RPG.Crafting.UI
             recipeDetails.AttachCraftingSystem(craftingSystem);
             // Populate the recipes list
             PopulateRecipesList(craftingSystem.GetRecipesList());
+            // Set the output (or not)
+            var outputSlot = this.craftingSystem.GetCraftedOutput();
+            recipeOutput.SetOutput(outputSlot?.GetCraftingItem());
             // Show the UI
             gameObject.SetActive(true);
         }
@@ -47,6 +50,14 @@ namespace RPG.Crafting.UI
             craftingSystem.CloseCrafting();
             // Hide the UI
             gameObject.SetActive(false);
+        }
+
+        public void Cleanup()
+        {
+            recipeDetails.Cleanup();
+            recipeOutput.SetOutput(null);
+            // Cleanup the recipes list
+            CleanupRecipesList();
         }
 
         public void CraftingStarted(Recipe currentRecipe)
@@ -86,6 +97,7 @@ namespace RPG.Crafting.UI
             // Destroy all the recipe items we know of
             foreach (var recipe in recipesInList)
             {
+                recipe.Selected -= OnRecipeSelected;
                 recipe.transform.SetParent(null);
                 Destroy(recipe.gameObject);
             }
@@ -115,8 +127,21 @@ namespace RPG.Crafting.UI
             {
                 var recipeUI = Instantiate(recipePrefab, recipesListContainer);
                 recipeUI.Setup(recipe, recipeDetails);
+                recipeUI.Selected += OnRecipeSelected;
                 recipesInList.Add(recipeUI);
             }
+        }
+
+        private void OnRecipeSelected(RecipeUI recipeUI)
+        {
+            // Unselect all the other recipe visuals
+            foreach(var recipe in recipesInList)
+            {
+                if (!object.ReferenceEquals(recipe, recipeUI))
+                    recipe.SetSelected(false);
+            }
+            // Update the details with the selected recipe
+            recipeDetails.RecipeSelected(recipeUI.GetRecipe());
         }
     }
 }

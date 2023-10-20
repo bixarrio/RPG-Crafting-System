@@ -51,6 +51,8 @@ namespace RPG.Crafting.UI
         {
             // Keep a reference to the crafting system
             this.craftingSystem = craftingSystem;
+            // Disable crafting (initially)
+            InitialiseCrafting();
         }
 
         // a recipe was selected
@@ -103,18 +105,29 @@ namespace RPG.Crafting.UI
             craftProgressImage.fillAmount = progress;
         }
 
+        public void Cleanup()
+        {
+            // Cleanup the ingredients list
+            CleanupIngredientsList();
+
+            // toggle the craft button
+            craftButton.interactable = false;
+            // Hide the craft button
+            craftButton.gameObject.SetActive(true);
+
+            // Reset the crafting progress image
+            craftProgressImage.fillAmount = 0f;
+            // Make the progress image visible
+            craftProgressContainer.SetActive(false);
+        }
+
         private void RefreshUI()
         {
             // Remove all children from the ingredient list container
             CleanupIngredientsList();
 
-            // Reset the progress image
-            craftProgressImage.fillAmount = 0f;
-            // Hide the progress image
-            craftProgressContainer.SetActive(false);
-
-            // Initially disable the craft button
-            craftButton.interactable = false;
+            // Initialliy, disable crafting
+            InitialiseCrafting();
 
             // If we have no recipe, we're done
             if (recipe == null)
@@ -147,6 +160,19 @@ namespace RPG.Crafting.UI
             craftButton.interactable = craftingSystem.CanCraftRecipe(recipe);
         }
 
+        private void InitialiseCrafting()
+        {
+            // Reset the progress image
+            craftProgressImage.fillAmount = 0f;
+            // Hide the progress image
+            craftProgressContainer.SetActive(false);
+
+            // Show the craft button
+            craftButton.gameObject.SetActive(true);
+            // Initially disable the craft button
+            craftButton.interactable = false;
+        }
+
         private void CleanupIngredientsList()
         {
             // Destroy all the child items in the ingredients list
@@ -161,63 +187,13 @@ namespace RPG.Crafting.UI
         {
             // Remove all children from the ingredient list container
             CleanupIngredientsList();
+
             // Go through each ingredient, create it's representation and add it to the list
             foreach (var ingredient in ingredients)
             {
                 var ingredientUI = Instantiate(ingredientPrefab, ingredientsListContainer);
                 ingredientUI.Setup(ingredient);
             }
-        }
-
-        // Routine to craft the recipe
-        private IEnumerator CraftItemRoutine(Recipe recipe)
-        {
-            // Disable the craft button
-            craftButton.interactable = false;
-            // Hide the craft button
-            craftButton.gameObject.SetActive(false);
-
-            // Reset the crafting progress image
-            craftProgressImage.fillAmount = 0f;
-            // Make the progress image visible
-            craftProgressContainer.SetActive(true);
-
-            // Get the crafting duration
-            var duration = recipe.GetCraftDuration();
-            // Loop while we are crafting
-            for (var timer = 0f; timer / duration <= 1f; timer += Time.deltaTime)
-            {
-                // Increase the fill amount of the progress image
-                craftProgressImage.fillAmount = timer / duration;
-                yield return null;
-            }
-
-            // Reset the progress image
-            craftProgressImage.fillAmount = 0f;
-            // Hide the progress image
-            craftProgressContainer.SetActive(false);
-
-            // Show the craft button
-            craftButton.gameObject.SetActive(true);
-            // Make the craft button interactable _if_ the player can craft this recipe
-            craftButton.interactable = craftingSystem.CanCraftRecipe(recipe);
-
-            // Get the player inventory
-            var playerInventory = Inventory.GetPlayerInventory();
-            // Remove each ingredient from the player's inventory
-            foreach (var ingredient in recipe.GetIngredients())
-            {
-                playerInventory.RemoveItem(ingredient.Item, ingredient.Amount);
-            }
-            // Get the resulting item
-            var resultingItem = recipe.GetResult();
-            // Add the resulting item to the player's inventory
-            playerInventory.AddToFirstEmptySlot(resultingItem.Item, resultingItem.Amount);
-
-            // Refresh the UI
-            RefreshUI();
-            // Fire the event
-            RecipeCrafted?.Invoke();
         }
     }
 }

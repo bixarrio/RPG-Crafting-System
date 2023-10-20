@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace RPG.Crafting
 {
-    public class CraftingManager : MonoBehaviour
+    public class CraftingMediator : MonoBehaviour
     {
         public static event Action<ICraftingTable> Interact;
 
-        public static CraftingManager GetCraftingManager()
+        public static CraftingMediator GetCraftingManager()
         {
-            return FindObjectOfType<CraftingManager>();
+            return FindObjectOfType<CraftingMediator>();
         }
 
         public void NotifyInteraction(ICraftingTable craftingTable)

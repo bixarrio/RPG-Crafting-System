@@ -14,8 +14,13 @@ namespace RPG.Crafting.UI
 
         public void SetOutput(CraftingItem output)
         {
-            amount = output.Amount;
-            outputItem = output.Item;
+            amount = 0;
+            outputItem = null;
+            if (output != null)
+            {
+                amount = output.Amount;
+                outputItem = output.Item;
+            }
             itemIcon.SetItem(outputItem, amount);
         }
 
