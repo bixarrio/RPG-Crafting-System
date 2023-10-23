@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace RPG.Crafting.UI
@@ -9,13 +8,21 @@ namespace RPG.Crafting.UI
     // UI for one recipe
     public class RecipeUI : MonoBehaviour
     {
-        // An event that will fire if a recipe is selected
-        public static event Action<Recipe> RecipeSelected;
+        public event Action<RecipeUI> Selected;
 
         // An image to hold the resulting item's icon
         [SerializeField] Image recipeIcon;
         // A text field to hold the resulting item's name
         [SerializeField] TextMeshProUGUI recipeName;
+        // Some selection stuff
+        [Header("Selection")]
+        [SerializeField] Image selectionImage;
+        [SerializeField] Color normalColor;
+        [SerializeField] Color selectedColor;
+
+        // The selected state
+        private bool isSelected;
+        private bool isInteractable = true;
 
         // A reference to the recipe
         private Recipe recipe;
@@ -29,13 +36,42 @@ namespace RPG.Crafting.UI
             RefreshUI();
         }
 
+        // Get the recipe I represent
+        public Recipe GetRecipe()
+        {
+            return recipe;
+        }
+
         // Hooked to the UI button
         public void OnSelect()
         {
-            // Visually select the game object
-            EventSystem.current.SetSelectedGameObject(gameObject);
-            // Fire the event when a recipe is selected
-            RecipeSelected?.Invoke(recipe);
+            // Only allow selection if we're interactable
+            if (!isInteractable)
+            {
+                return;
+            }
+            // Set the visual
+            SetSelected(true);
+        }
+
+        // Toggle the recipe interaction
+        public void SetEnabled(bool enabled)
+        {
+            isInteractable = enabled;
+        }
+
+        // Set selection
+        public void SetSelected(bool isSelected)
+        {
+            this.isSelected = isSelected;
+            selectionImage.color = normalColor;
+            if (isSelected)
+            {
+                // Set the selected color
+                selectionImage.color = selectedColor;
+                // Fire the event that we were selected
+                Selected?.Invoke(this);
+            }
         }
 
         // Refresh the UI
