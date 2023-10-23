@@ -1,11 +1,13 @@
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
 using RPG.Control;
+using RPG.Stats;
 using System;
 using UnityEngine;
 
 namespace RPG.Crafting
 {
+    // The crafting system model
     public class CraftingTable : MonoBehaviour, ICraftingTable, IRaycastable, ISaveable
     {
         public event Action<ICraftingTable> OnInteract;
@@ -40,6 +42,8 @@ namespace RPG.Crafting
             recipes = Resources.LoadAll<Recipe>("Recipes");
             // Keep a reference to the time keeper
             timeKeeper = TimeKeeper.GetTimeKeeper();
+            // Create the crafted output slot
+            CraftedOutput = new CraftedItemSlot();
         }
 
         public CursorType GetCursorType()
@@ -56,10 +60,10 @@ namespace RPG.Crafting
                 return false;
             }
 
-            // If the player presseed the left mouse button, fire the event
+            // If the player presseed the left mouse button, open the UI
             if (Input.GetMouseButtonDown(0))
             {
-                // Let the CraftingManager know that we are being interacted with
+                // Let the CraftingMediator know that we are being interacted with
                 var craftingManager = CraftingMediator.GetCraftingManager();
                 craftingManager.NotifyInteraction(this);
             }
@@ -112,19 +116,14 @@ namespace RPG.Crafting
 
             // If we are here, crafting is complete
             var craftedResult = CurrentRecipe.GetResult();
-            if (CraftedOutput == null)
-            {
-                // Add this to the CraftedOutput
-                CraftedOutput = new CraftedItemSlot(craftedResult);
-            }
-            else if (CraftedOutput.CanAddItem(craftedResult))
+            if (CraftedOutput.CanAddItem(craftedResult))
             {
                 // The crafted output matches the little inventory, add it (should always be the case)
                 CraftedOutput.AddItem(craftedResult);
             }
             else
             {
-                // We have a problem. This shouldn't happen
+                // We have a problem. This should never happen because we checked the output before allowing a craft
                 Debug.LogError("Crafted an item that does not match the item in the output inventory");
             }
 
@@ -214,6 +213,19 @@ namespace RPG.Crafting
                 return false;
             }
 
+            // Check the player level - we assume the inventory and stats are on the same object = as per course
+            var baseStats = playerInventory.GetComponent<BaseStats>();
+            // If we found no base stats, we have a problem. Return false (should probably be an error)
+            if (baseStats == null)
+            {
+                return false;
+            }
+            // If the player's level is below the requirement, return false
+            if (baseStats.GetLevel() < recipe.GetRequiredLevel())
+            {
+                return false;
+            }
+
             // Go through each ingredient and check the player's inventory for that ingredient
             foreach (var craftingItem in recipe.GetIngredients())
             {
@@ -232,7 +244,7 @@ namespace RPG.Crafting
 
             // If we got to here, the player has all the ingredients required.
             // Check if we have matching output
-            if (CraftedOutput == null)
+            if (CraftedOutput == null || CraftedOutput.Item == null)
             {
                 // We have no output, return true
                 return true;
@@ -264,7 +276,7 @@ namespace RPG.Crafting
 
         object ISaveable.CaptureState()
         {
-            // Save the state, start time and recipe
+            // Save the state, start time, recipe, and output (if any)
             var saveData = new CraftingTableSaveData
             {
                 CraftingState = CurrentState,
@@ -283,7 +295,7 @@ namespace RPG.Crafting
         }
         void ISaveable.RestoreState(object state)
         {
-            // Restore the state, start time and recipe (if any)
+            // Restore the state, start time, recipe and output (if any)
             var saveData = (CraftingTableSaveData)state;
 
             craftingStartTime = 0;
@@ -319,31 +331,5 @@ namespace RPG.Crafting
             public string OutputItemID;
             public int OutputAmount;
         }
-    }
-
-    public enum CraftingState
-    {
-        Idle,
-        Crafting
-    }
-
-    public interface ICraftingTable
-    {
-        event Action<ICraftingTable> OnInteract;
-        event Action CraftingStarted;
-        event Action<float> CraftingProgress;
-        event Action CraftingCompleted;
-        event Action CraftingCancelled;
-
-        Recipe CurrentRecipe { get; }
-        CraftedItemSlot CraftedOutput { get; }
-        CraftingState CurrentState { get; }
-        float CraftingPercentage { get; }
-
-        Recipe[] GetRecipesList();
-        bool CanCraftRecipe(Recipe recipe);
-        void CraftRecipe(Recipe recipe);
-        void CancelCrafting();
-        void UpdateState();
     }
 }

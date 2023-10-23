@@ -1,5 +1,4 @@
 ﻿using GameDevTV.Inventories;
-using UnityEngine;
 
 namespace RPG.Crafting
 {
@@ -14,6 +13,7 @@ namespace RPG.Crafting
             Amount = amount;
         }
         public CraftedItemSlot(CraftingItem craftingItem) : this(craftingItem.Item, craftingItem.Amount) { }
+        public CraftedItemSlot() : this(null, 0) { }
 
         public bool AddItem(CraftingItem craftingItem)
         {
@@ -61,13 +61,23 @@ namespace RPG.Crafting
             return true;
         }
 
-        public CraftingItem GetCraftingItem()
+        public CraftingItem GetCraftedItem()
         {
             return new CraftingItem
             {
                 Item = Item,
                 Amount = Amount,
             };
+        }
+
+        public void RemoveCraftedItem(int amount)
+        {
+            // Remove items from the slot
+            Amount -= amount;
+            if (Amount <= 0)
+            {
+                Item = null;
+            }
         }
     }
 }

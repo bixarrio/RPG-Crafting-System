@@ -24,19 +24,14 @@ namespace RPG.Crafting.UI
         private bool isSelected;
         private bool isInteractable = true;
 
-        // The details panel
-        private RecipeDetailsUI recipeDetails;
-
         // A reference to the recipe
         private Recipe recipe;
 
         // Set up the recipe
-        public void Setup(Recipe recipe, RecipeDetailsUI recipeDetails)
+        public void Setup(Recipe recipe)
         {
             // Keep a reference to the recipe
             this.recipe = recipe;
-            // A reference to the details panel
-            this.recipeDetails = recipeDetails;
             // Refresh the UI
             RefreshUI();
         }
