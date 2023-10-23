@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1290196347435078126}
   - component: {fileID: 1290196347435078123}
-  - component: {fileID: 1290196347435078121}
+  - component: {fileID: 2533090700507332070}
   - component: {fileID: 1290196347435078120}
   m_Layer: 0
   m_Name: Crafting Table
@@ -47,7 +47,7 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 2.4844549, y: 1.0926483, z: 1.0132486}
   m_Center: {x: 0.00000059604645, y: 0.54632413, z: 0.00000017881393}
---- !u!114 &1290196347435078121
+--- !u!114 &2533090700507332070
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -56,7 +56,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1290196347435078127}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ea9374b509b70f4bba37e4a2ca8cf00, type: 3}
+  m_Script: {fileID: 11500000, guid: b5dfec18bc12bbd48bb153dfe2cab06a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   uniqueIdentifier: 

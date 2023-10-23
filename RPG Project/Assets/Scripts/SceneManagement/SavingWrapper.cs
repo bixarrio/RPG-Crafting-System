@@ -51,7 +51,7 @@ namespace RPG.SceneManagement
         {
             Fader fader = FindObjectOfType<Fader>();
             yield return fader.FadeOut(fadeOutTime);
-            yield return GetComponent<SavingSystem>().LoadLastScene(GetCurrentSave());
+            yield return GetComponent<JsonSavingSystem>().LoadLastScene(GetCurrentSave());
             yield return fader.FadeIn(fadeInTime);
         }
 
@@ -88,22 +88,22 @@ namespace RPG.SceneManagement
 
         public void Load()
         {
-            GetComponent<SavingSystem>().Load(GetCurrentSave());
+            GetComponent<JsonSavingSystem>().Load(GetCurrentSave());
         }
 
         public void Save()
         {
-            GetComponent<SavingSystem>().Save(GetCurrentSave());
+            GetComponent<JsonSavingSystem>().Save(GetCurrentSave());
         }
 
         public void Delete()
         {
-            GetComponent<SavingSystem>().Delete(GetCurrentSave());
+            GetComponent<JsonSavingSystem>().Delete(GetCurrentSave());
         }
 
         public IEnumerable<string> ListSaves()
         {
-            return GetComponent<SavingSystem>().ListSaves();
+            return GetComponent<JsonSavingSystem>().ListSaves();
         }
     }
 }

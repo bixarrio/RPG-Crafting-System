@@ -1,5 +1,6 @@
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 using RPG.Control;
 using RPG.Stats;
 using System;
@@ -8,7 +9,7 @@ using UnityEngine;
 namespace RPG.Crafting
 {
     // The crafting system model
-    public class CraftingTable : MonoBehaviour, ICraftingTable, IRaycastable, ISaveable
+    public class CraftingTable : MonoBehaviour, ICraftingTable, IRaycastable, IJsonSaveable
     {
         public event Action<ICraftingTable> OnInteract;
         public event Action CraftingStarted;
@@ -274,7 +275,7 @@ namespace RPG.Crafting
             currentAction?.Invoke();
         }
 
-        object ISaveable.CaptureState()
+        JToken IJsonSaveable.CaptureAsJToken()
         {
             // Save the state, start time, recipe, and output (if any)
             var saveData = new CraftingTableSaveData
@@ -291,12 +292,12 @@ namespace RPG.Crafting
                 saveData.OutputItemID = CraftedOutput.Item.GetItemID();
                 saveData.OutputAmount = CraftedOutput.Amount;
             }
-            return saveData;
+            return JToken.FromObject(saveData);
         }
-        void ISaveable.RestoreState(object state)
+        void IJsonSaveable.RestoreFromJToken(JToken state)
         {
             // Restore the state, start time, recipe and output (if any)
-            var saveData = (CraftingTableSaveData)state;
+            var saveData = state.ToObject<CraftingTableSaveData>();
 
             craftingStartTime = 0;
             CurrentRecipe = default;

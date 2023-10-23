@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -64,12 +65,12 @@ namespace RPG.Quests
             }
         }
 
-        public object CaptureState()
+        public JToken CaptureState()
         {
             QuestStatusRecord state = new QuestStatusRecord();
             state.questName = quest.name;
             state.completedObjectives = completedObjectives;
-            return state;
+            return JToken.FromObject(state);
         }
     }
 }

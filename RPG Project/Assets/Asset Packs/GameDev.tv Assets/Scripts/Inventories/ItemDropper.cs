@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 
 namespace GameDevTV.Inventories
 {
@@ -8,7 +9,7 @@ namespace GameDevTV.Inventories
     /// To be placed on anything that wishes to drop pickups into the world.
     /// Tracks the drops for saving and restoring.
     /// </summary>
-    public class ItemDropper : MonoBehaviour, ISaveable
+    public class ItemDropper : MonoBehaviour, IJsonSaveable
     {
         // STATE
         private List<Pickup> droppedItems = new List<Pickup>();
@@ -64,7 +65,7 @@ namespace GameDevTV.Inventories
             public int number;
         }
 
-        object ISaveable.CaptureState()
+        JToken IJsonSaveable.CaptureAsJToken()
         {
             RemoveDestroyedDrops();
             var droppedItemsList = new DropRecord[droppedItems.Count];
@@ -74,12 +75,12 @@ namespace GameDevTV.Inventories
                 droppedItemsList[i].position = new SerializableVector3(droppedItems[i].transform.position);
                 droppedItemsList[i].number = droppedItems[i].GetNumber();
             }
-            return droppedItemsList;
+            return JToken.FromObject(droppedItemsList);
         }
 
-        void ISaveable.RestoreState(object state)
+        void IJsonSaveable.RestoreFromJToken(JToken state)
         {
-            var droppedItemsList = (DropRecord[])state;
+            var droppedItemsList = state.ToObject<DropRecord[]>();
             foreach (var item in droppedItemsList)
             {
                 var pickupItem = InventoryItem.GetFromID(item.itemID);

@@ -3,6 +3,7 @@ using UnityEngine;
 using GameDevTV.Saving;
 using System.Collections.Generic;
 using GameDevTV.Utils;
+using Newtonsoft.Json.Linq;
 
 namespace GameDevTV.Inventories
 {
@@ -12,7 +13,7 @@ namespace GameDevTV.Inventories
     ///
     /// This component should be placed on the GameObject tagged "Player".
     /// </summary>
-    public class Inventory : MonoBehaviour, ISaveable, IPredicateEvaluator
+    public class Inventory : MonoBehaviour, IJsonSaveable, IPredicateEvaluator
     {
         // CONFIG DATA
         [Tooltip("Allowed size")]
@@ -284,7 +285,7 @@ namespace GameDevTV.Inventories
             public int number;
         }
 
-        object ISaveable.CaptureState()
+        JToken IJsonSaveable.CaptureAsJToken()
         {
             var slotStrings = new InventorySlotRecord[inventorySize];
             for (int i = 0; i < inventorySize; i++)
@@ -295,12 +296,12 @@ namespace GameDevTV.Inventories
                     slotStrings[i].number = slots[i].number;
                 }
             }
-            return slotStrings;
+            return JToken.FromObject(slotStrings);
         }
 
-        void ISaveable.RestoreState(object state)
+        void IJsonSaveable.RestoreFromJToken(JToken state)
         {
-            var slotStrings = (InventorySlotRecord[])state;
+            var slotStrings = state.ToObject<InventorySlotRecord[]>();
             for (int i = 0; i < inventorySize; i++)
             {
                 slots[i].item = InventoryItem.GetFromID(slotStrings[i].itemID);

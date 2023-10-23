@@ -3,10 +3,11 @@ using GameDevTV.Saving;
 using UnityEngine;
 using UnityEngine.AI;
 using RPG.Attributes;
+using Newtonsoft.Json.Linq;
 
 namespace RPG.Movement
 {
-    public class Mover : MonoBehaviour, IAction, ISaveable
+    public class Mover : MonoBehaviour, IAction, IJsonSaveable
     {
         [SerializeField] Transform target;
         [SerializeField] float maxSpeed = 6f;
@@ -15,7 +16,8 @@ namespace RPG.Movement
         NavMeshAgent navMeshAgent;
         Health health;
 
-        private void Awake() {
+        private void Awake()
+        {
             navMeshAgent = GetComponent<NavMeshAgent>();
             health = GetComponent<Health>();
         }
@@ -24,7 +26,7 @@ namespace RPG.Movement
         {
             navMeshAgent.enabled = !health.IsDead();
 
-                UpdateAnimator();
+            UpdateAnimator();
         }
 
         public void StartMoveAction(Vector3 destination, float speedFraction)
@@ -76,14 +78,14 @@ namespace RPG.Movement
             return total;
         }
 
-        public object CaptureState()
+        public JToken CaptureAsJToken()
         {
-            return new SerializableVector3(transform.position);
+            return JToken.FromObject(new SerializableVector3(transform.position));
         }
 
-        public void RestoreState(object state)
+        public void RestoreFromJToken(JToken state)
         {
-            SerializableVector3 position = (SerializableVector3)state;
+            SerializableVector3 position = state.ToObject<SerializableVector3>();
             navMeshAgent.enabled = false;
             transform.position = position.ToVector();
             navMeshAgent.enabled = true;

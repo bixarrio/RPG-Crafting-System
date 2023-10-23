@@ -4,17 +4,19 @@ using System.Collections.Generic;
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
 using GameDevTV.Utils;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace RPG.Quests
 {
-    public class QuestList : MonoBehaviour, ISaveable, IPredicateEvaluator
+    public class QuestList : MonoBehaviour, IJsonSaveable, IPredicateEvaluator
     {
         List<QuestStatus> statuses = new List<QuestStatus>();
 
         public event Action onUpdate;
 
-        private void Update() {
+        private void Update()
+        {
             CompleteObjectivesByPredicates();
         }
 
@@ -95,25 +97,25 @@ namespace RPG.Quests
             }
         }
 
-        public object CaptureState()
+        public JToken CaptureAsJToken()
         {
             List<object> state = new List<object>();
             foreach (QuestStatus status in statuses)
             {
                 state.Add(status.CaptureState());
             }
-            return state;
+            return JToken.FromObject(state);
         }
 
-        public void RestoreState(object state)
+        public void RestoreFromJToken(JToken state)
         {
-            List<object> stateList = state as List<object>;
+            List<object> stateList = state.ToObject<List<object>>();
             if (stateList == null) return;
 
             statuses.Clear();
-            foreach (object objectState in stateList)
+            foreach (JToken objectState in stateList)
             {
-                statuses.Add(new QuestStatus(objectState));
+                statuses.Add(new QuestStatus(objectState.ToObject<object>()));
             }
         }
 
@@ -121,10 +123,10 @@ namespace RPG.Quests
         {
             switch (predicate)
             {
-                case "HasQuest": 
-                return HasQuest(Quest.GetByName(parameters[0]));
+                case "HasQuest":
+                    return HasQuest(Quest.GetByName(parameters[0]));
                 case "CompletedQuest":
-                return GetQuestStatus(Quest.GetByName(parameters[0])).IsComplete();
+                    return GetQuestStatus(Quest.GetByName(parameters[0])).IsComplete();
             }
 
             return null;

@@ -1,4 +1,5 @@
 ﻿using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace RPG
@@ -7,7 +8,7 @@ namespace RPG
     // is initialised when the game starts and we don't necessarily want that.
     // This time will keep consistent time, giving us a continuous value  between
     // game sessions/saves
-    public class TimeKeeper : MonoBehaviour, ISaveable
+    public class TimeKeeper : MonoBehaviour, IJsonSaveable
     {
         // A global time value that can be used by systems that require it
         private float globalTime = 0f;
@@ -30,15 +31,15 @@ namespace RPG
             return globalTime;
         }
 
-        object ISaveable.CaptureState()
+        JToken IJsonSaveable.CaptureAsJToken()
         {
             // Save the global time
-            return globalTime;
+            return JToken.FromObject(globalTime);
         }
-        void ISaveable.RestoreState(object state)
+        void IJsonSaveable.RestoreFromJToken(JToken state)
         {
             // Restore the global time
-            globalTime = (float)state;
+            globalTime = state.ToObject<float>();
         }
     }
 }

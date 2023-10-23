@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 
 namespace GameDevTV.Inventories
 {
@@ -11,7 +12,7 @@ namespace GameDevTV.Inventories
     /// 
     /// This component should be placed on the GameObject tagged "Player".
     /// </summary>
-    public class ActionStore : MonoBehaviour, ISaveable
+    public class ActionStore : MonoBehaviour, IJsonSaveable
     {
         // STATE
         Dictionary<int, DockedItemSlot> dockedItems = new Dictionary<int, DockedItemSlot>();
@@ -162,7 +163,7 @@ namespace GameDevTV.Inventories
             public int number;
         }
 
-        object ISaveable.CaptureState()
+        JToken IJsonSaveable.CaptureAsJToken()
         {
             var state = new Dictionary<int, DockedItemRecord>();
             foreach (var pair in dockedItems)
@@ -172,12 +173,12 @@ namespace GameDevTV.Inventories
                 record.number = pair.Value.number;
                 state[pair.Key] = record;
             }
-            return state;
+            return JToken.FromObject(state);
         }
 
-        void ISaveable.RestoreState(object state)
+        void IJsonSaveable.RestoreFromJToken(JToken state)
         {
-            var stateDict = (Dictionary<int, DockedItemRecord>)state;
+            var stateDict = state.ToObject< Dictionary<int, DockedItemRecord>>();
             foreach (var pair in stateDict)
             {
                 AddAction(InventoryItem.GetFromID(pair.Value.itemID), pair.Key, pair.Value.number);

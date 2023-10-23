@@ -1,16 +1,16 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 using RPG.Control;
 using RPG.Inventories;
 using RPG.Stats;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RPG.Shops
 {
-    public class Shop : MonoBehaviour, IRaycastable, ISaveable
+    public class Shop : MonoBehaviour, IRaycastable, IJsonSaveable
     {
         [SerializeField] string shopName;
         [Range(0, 100)]
@@ -18,10 +18,10 @@ namespace RPG.Shops
         [SerializeField] float maximumBarterDiscount = 80;
 
         // Stock Config
-            // Item: 
-                // InventoryItem
-                // Initial Stock
-                // buyingDiscount
+        // Item: 
+        // InventoryItem
+        // Initial Stock
+        // buyingDiscount
         [SerializeField]
         StockItemConfig[] stockConfig;
 
@@ -76,7 +76,8 @@ namespace RPG.Shops
             }
         }
 
-        public void SelectFilter(ItemCategory category) {
+        public void SelectFilter(ItemCategory category)
+        {
             filter = category;
             print(category);
 
@@ -86,12 +87,12 @@ namespace RPG.Shops
             }
         }
 
-        public ItemCategory GetFilter() 
-        { 
+        public ItemCategory GetFilter()
+        {
             return filter;
         }
 
-        public void SelectMode(bool isBuying) 
+        public void SelectMode(bool isBuying)
         {
             isBuyingMode = isBuying;
             if (onChange != null)
@@ -100,13 +101,13 @@ namespace RPG.Shops
             }
         }
 
-        public bool IsBuyingMode() 
-        { 
-            return isBuyingMode; 
+        public bool IsBuyingMode()
+        {
+            return isBuyingMode;
         }
 
-        public bool CanTransact() 
-        { 
+        public bool CanTransact()
+        {
             if (IsTransactionEmpty()) return false;
             if (!HasSufficientFunds()) return false;
             if (!HasInventorySpace()) return false;
@@ -183,7 +184,7 @@ namespace RPG.Shops
         }
 
         public float TransactionTotal()
-        { 
+        {
             float total = 0;
             foreach (ShopItem item in GetAllItems())
             {
@@ -197,7 +198,7 @@ namespace RPG.Shops
             return shopName;
         }
 
-        public void AddToTransaction(InventoryItem item, int quantity) 
+        public void AddToTransaction(InventoryItem item, int quantity)
         {
             if (!transaction.ContainsKey(item))
             {
@@ -215,7 +216,7 @@ namespace RPG.Shops
             {
                 transaction[item] += quantity;
             }
-            
+
             if (transaction[item] <= 0)
             {
                 transaction.Remove(item);
@@ -376,7 +377,7 @@ namespace RPG.Shops
             return stats.GetLevel();
         }
 
-        public object CaptureState()
+        public JToken CaptureAsJToken()
         {
             Dictionary<string, int> saveObject = new Dictionary<string, int>();
 
@@ -385,12 +386,12 @@ namespace RPG.Shops
                 saveObject[pair.Key.GetItemID()] = pair.Value;
             }
 
-            return saveObject;
+            return JToken.FromObject(saveObject);
         }
 
-        public void RestoreState(object state)
+        public void RestoreFromJToken(JToken state)
         {
-            Dictionary<string, int> saveObject = (Dictionary<string, int>) state;
+            Dictionary<string, int> saveObject = state.ToObject<Dictionary<string, int>>();
             stockSold.Clear();
             foreach (var pair in saveObject)
             {

@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using GameDevTV.Saving;
 using GameDevTV.Utils;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace RPG.Stats
 {
-    public class TraitStore : MonoBehaviour, IModifierProvider, ISaveable, IPredicateEvaluator
+    public class TraitStore : MonoBehaviour, IModifierProvider, IJsonSaveable, IPredicateEvaluator
     {
         [SerializeField] TraitBonus[] bonusConfig;
         [System.Serializable]
@@ -55,7 +56,7 @@ namespace RPG.Stats
 
         public int GetStagedPoints(Trait trait)
         {
-            return stagedPoints.ContainsKey(trait)? stagedPoints[trait] : 0;
+            return stagedPoints.ContainsKey(trait) ? stagedPoints[trait] : 0;
         }
 
         public void AssignPoints(Trait trait, int points)
@@ -127,14 +128,14 @@ namespace RPG.Stats
             }
         }
 
-        public object CaptureState()
+        public JToken CaptureAsJToken()
         {
-            return assignedPoints;
+            return JToken.FromObject(assignedPoints);
         }
 
-        public void RestoreState(object state)
+        public void RestoreFromJToken(JToken state)
         {
-            assignedPoints = new Dictionary<Trait, int>((IDictionary<Trait, int>)state);
+            assignedPoints = new Dictionary<Trait, int>(state.ToObject<IDictionary<Trait, int>>());
         }
 
         public bool? Evaluate(string predicate, string[] parameters)
@@ -144,7 +145,7 @@ namespace RPG.Stats
                 if (Enum.TryParse<Trait>(parameters[0], out Trait trait))
                 {
                     return GetPoints(trait) >= Int32.Parse(parameters[1]);
-                } 
+                }
             }
             return null;
         }

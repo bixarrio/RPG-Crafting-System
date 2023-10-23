@@ -1,10 +1,11 @@
 using System;
 using GameDevTV.Inventories;
 using GameDevTV.Saving;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace RPG.Inventories {
-    public class Purse : MonoBehaviour, ISaveable, IItemStore
+    public class Purse : MonoBehaviour, IJsonSaveable, IItemStore
     {
         [SerializeField] float startingBalance = 400f;
 
@@ -30,14 +31,14 @@ namespace RPG.Inventories {
             }
         }
 
-        public object CaptureState()
+        public JToken CaptureAsJToken()
         {
-            return balance;
+            return JToken.FromObject(balance);
         }
 
-        public void RestoreState(object state)
+        public void RestoreFromJToken(JToken state)
         {
-            balance = (float)state;
+            balance = state.ToObject<float>();
         }
 
         public int AddItems(InventoryItem item, int number)

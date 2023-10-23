@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 445292978444894930}
-  - component: {fileID: 5464817786007869437}
+  - component: {fileID: 8896792386976467736}
   - component: {fileID: 3029958979460130982}
   m_Layer: 0
   m_Name: TimeKeeper
@@ -32,7 +32,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5464817786007869437
+--- !u!114 &8896792386976467736
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,7 +41,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1631728324002542867}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ea9374b509b70f4bba37e4a2ca8cf00, type: 3}
+  m_Script: {fileID: 11500000, guid: b5dfec18bc12bbd48bb153dfe2cab06a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   uniqueIdentifier: timekeeper
