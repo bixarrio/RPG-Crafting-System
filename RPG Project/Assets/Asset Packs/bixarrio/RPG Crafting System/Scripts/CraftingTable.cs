@@ -286,7 +286,7 @@ namespace RPG.Crafting
             {
                 saveData.RecipeID = CurrentRecipe.GetRecipeID();
             }
-            if (CraftedOutput != null)
+            if (CraftedOutput != null && CraftedOutput.Item != null)
             {
                 saveData.OutputItemID = CraftedOutput.Item.GetItemID();
                 saveData.OutputAmount = CraftedOutput.Amount;
