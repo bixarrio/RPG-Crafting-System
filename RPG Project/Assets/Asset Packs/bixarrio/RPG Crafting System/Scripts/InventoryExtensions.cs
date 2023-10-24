@@ -1,4 +1,5 @@
 ﻿using GameDevTV.Inventories;
+using UnityEngine;
 
 namespace RPG.Crafting
 {
@@ -23,6 +24,40 @@ namespace RPG.Crafting
             }
 
             return hasItem;
+        }
+
+        public static int RemoveItem(this Inventory inventory, InventoryItem item, int number)
+        {
+            if (item == null)
+            {
+                return number;
+            }
+
+            while (number > 0)
+            {
+                int slot = FindFirstInSlot(inventory, item);
+                if (slot < 0)
+                {
+                    break;
+                }
+                int amountToRemove = Mathf.Min(number, inventory.GetNumberInSlot(slot));
+                number -= amountToRemove;
+                inventory.RemoveFromSlot(slot, amountToRemove);
+            }
+
+            return number;
+        }
+
+        public static int FindFirstInSlot(this Inventory inventory, InventoryItem item)
+        {
+            for (int i = 0; i < inventory.GetSize(); i++)
+            {
+                if (object.ReferenceEquals(inventory.GetItemInSlot(i), item))
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
     }
 }

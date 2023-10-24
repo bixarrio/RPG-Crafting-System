@@ -170,24 +170,6 @@ namespace GameDevTV.Inventories
             }
         }
 
-        public bool RemoveItem(InventoryItem item, int number)
-        {
-            var slot = -1;
-            for (int i = 0; i < slots.Length; i++)
-            {
-                if (object.ReferenceEquals(slots[i].item, item))
-                {
-                    slot = i;
-                    break;
-                }
-            }
-            if (slot < 0) return false;
-            if (GetNumberInSlot(slot) < number) return false;
-            RemoveFromSlot(slot, number);
-            inventoryUpdated?.Invoke();
-            return true;
-        }
-
         /// <summary>
         /// Will add an item to the given slot if possible. If there is already
         /// a stack of this type, it will add to the existing stack. Otherwise,

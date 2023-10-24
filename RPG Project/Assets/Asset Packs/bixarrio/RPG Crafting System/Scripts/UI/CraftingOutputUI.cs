@@ -3,10 +3,11 @@ using GameDevTV.Inventories;
 using GameDevTV.UI.Inventories;
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace RPG.Crafting.UI
 {
-    public class CraftingOutputUI : MonoBehaviour, IDragSource<InventoryItem>
+    public class CraftingOutputUI : MonoBehaviour, IDragSource<InventoryItem>, IPointerClickHandler
     {
         // Event that will fire when item(s) have been removed from this slot
         public event Action ItemRemoved;
@@ -17,11 +18,13 @@ namespace RPG.Crafting.UI
         // A reference to the crafted item slot
         private CraftedItemSlot craftedItemSlot;
 
-        public void SetCraftedItemSlot(CraftedItemSlot creftedItemSlot)
+        public void SetCraftedItemSlot(CraftedItemSlot craftedItemSlot)
         {
-            this.craftedItemSlot = creftedItemSlot;
+            // Set a reference to the crafted item slot
+            this.craftedItemSlot = craftedItemSlot;
         }
 
+        // Refresh the item slot
         public void RefreshOutput()
         {
             var outputItem = default(InventoryItem);
@@ -32,6 +35,43 @@ namespace RPG.Crafting.UI
                 outputAmount = craftedItemSlot.Amount;
             }
             itemIcon.SetItem(outputItem, outputAmount);
+        }
+
+        // Remove items from the slot
+        private void RemoveItemsFromSlot(int number)
+        {
+            craftedItemSlot.RemoveCraftedItem(number);
+
+            if (craftedItemSlot.Amount <= 0)
+            {
+                itemIcon.SetItem(null);
+            }
+
+            ItemRemoved?.Invoke();
+        }
+
+        private void SendItemToInventory()
+        {
+            // Try to put the item(s) in the inventory
+            var playerInventory = Inventory.GetPlayerInventory();
+            if (playerInventory == null)
+            {
+                // No inventory found, do nothing - should probably be an error
+                return;
+            }
+            if (!playerInventory.HasSpaceFor(craftedItemSlot.Item))
+            {
+                // No space for this item, do nothing
+                return;
+            }
+            if (!playerInventory.AddToFirstEmptySlot(craftedItemSlot.Item, craftedItemSlot.Amount))
+            {
+                // Could not add all the items, do nothing
+                return;
+            }
+
+            // Item was sent to the inventory. Remove it from the slot
+            RemoveItemsFromSlot(craftedItemSlot.Amount);
         }
 
         InventoryItem IDragSource<InventoryItem>.GetItem()
@@ -56,17 +96,29 @@ namespace RPG.Crafting.UI
         {
             if (craftedItemSlot == null)
             {
+                // The slot is empty, do nothing
                 return;
             }
 
-            craftedItemSlot.RemoveCraftedItem(number);
+            // Remove the item from the slot
+            RemoveItemsFromSlot(number);
+        }
 
-            if (craftedItemSlot.Amount <= 0)
+        void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData.button != PointerEventData.InputButton.Right)
             {
-                itemIcon.SetItem(null);
+                // Not a right-click, do nothing
+                return;
             }
 
-            ItemRemoved?.Invoke();
+            if (craftedItemSlot == null)
+            {
+                // The slot is empty, do nothing
+                return;
+            }
+
+            SendItemToInventory();
         }
     }
 }

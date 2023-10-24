@@ -123,6 +123,11 @@ namespace RPG.Crafting
         // Bound to the 'Close Button'
         public void CloseCrafting()
         {
+            if (!craftingWindow.gameObject.activeSelf)
+            {
+                // If the crafting UI is already closed, there's no need to clean it up
+                return;
+            }
             // Unsubscribe to all the events
             currentCraftingTable.CraftingStarted -= OnCraftingStarted;
             currentCraftingTable.CraftingProgress -= OnCraftingProgress;
