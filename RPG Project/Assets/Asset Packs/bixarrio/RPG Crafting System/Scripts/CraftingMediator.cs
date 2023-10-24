@@ -7,7 +7,7 @@ namespace RPG.Crafting
     {
         public static event Action<ICraftingTable> Interact;
 
-        public static CraftingMediator GetCraftingManager()
+        public static CraftingMediator GetCraftingMediator()
         {
             return FindObjectOfType<CraftingMediator>();
         }

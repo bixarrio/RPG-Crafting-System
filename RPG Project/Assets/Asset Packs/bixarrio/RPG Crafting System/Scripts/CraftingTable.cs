@@ -17,6 +17,8 @@ namespace RPG.Crafting
         public event Action CraftingCompleted;
         public event Action CraftingCancelled;
 
+        [SerializeField] bool allowCancellation = true;
+
         // The current crafting progress, if any
         public float CraftingPercentage { get; private set; } = 0;
         // The current crafting state
@@ -29,7 +31,6 @@ namespace RPG.Crafting
         private Recipe[] recipes;
         // The global time that crafting has started
         private float craftingStartTime;
-        // The current recipe to be crafted
 
         // A reference to the time keeper
         private TimeKeeper timeKeeper;
@@ -65,8 +66,8 @@ namespace RPG.Crafting
             if (Input.GetMouseButtonDown(0))
             {
                 // Let the CraftingMediator know that we are being interacted with
-                var craftingManager = CraftingMediator.GetCraftingManager();
-                craftingManager.NotifyInteraction(this);
+                var craftingMediator = CraftingMediator.GetCraftingMediator();
+                craftingMediator.NotifyInteraction(this);
             }
 
             return true;
@@ -163,7 +164,7 @@ namespace RPG.Crafting
 
             // Remove the ingredients from the player's inventory
             var playerInventory = Inventory.GetPlayerInventory();
-            foreach(var ingredient in recipe.GetIngredients())
+            foreach (var ingredient in recipe.GetIngredients())
             {
                 playerInventory.RemoveItem(ingredient.Item, ingredient.Amount);
             }
@@ -175,6 +176,12 @@ namespace RPG.Crafting
         // Cancel the crafting process
         void ICraftingTable.CancelCrafting()
         {
+            // If we do not support crafting cancellation, do nothing
+            if (!allowCancellation)
+            {
+                return;
+            }
+
             // Replace the items in the player's inventory
             var playerInventory = Inventory.GetPlayerInventory();
             foreach (var ingredient in CurrentRecipe.GetIngredients())
